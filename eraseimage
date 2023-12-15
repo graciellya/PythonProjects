@@ -1,0 +1,144 @@
+
+import os
+import sys
+
+
+def pix_dist2(pix1, pix2):
+    """
+    Returns the square of the color distance between 2 pix tuples.
+    >>> pix_dist2((0,1,2),(4,5,8))
+    68
+    """
+   # avg = (abs(pix1 - pix2))**2
+    #return avg
+
+    return (pix1[0] - pix2[0])**2 + (pix1[1]-pix2[1])**2 + (pix1[2]-pix2[2])**2
+
+
+def avg_pix(pixs):
+
+    r=0
+    g=0
+    b=0
+    for i in range(len(pixs)):
+        r += pixs[i][0]
+        g += pixs[i][1]
+        b += pixs[i][2]
+    r_avg = r / len(pixs)
+    g_avg = g / len(pixs)
+    b_avg = b / len(pixs)
+    return (r_avg, g_avg, b_avg)
+
+
+def best_pix(pixs):
+    """
+    Given a list of 1 or more pix, returns the best pix.
+    >>> best_pix([(1,1,1),(2,2,2),(3,3,3)])
+    (2, 2, 2)
+    >>> best_pix([(-1,-2,-3),(1,2,3,),(3,3,3)])
+    (1, 2, 3)
+    >>> best_pix([(0,0,0),(-2,-2,-2),(1,1,1)])
+    (0, 0, 0)
+    """
+
+    #average of each individual rgb in pixel
+    final_avg = avg_pix(pixs)
+    #lambda to get pixel
+    return min(pixs, key = lambda pix: pix_dist2(pix, final_avg))
+
+def decompose_pix(images,x,y):
+
+    list_pixels = []
+    for image in images:
+        pixel = image.get_pix(x, y)
+        list_pixels.append(pixel)
+    return list_pixels
+
+def good_apple_pix(pixs):
+    """
+    Given a list of 2 or more pix, return the best pix
+    according to the good-apple strategy.
+    >>> good_apple_pix([(18, 18, 18), (0, 2, 0), (19, 23, 18), (19, 22, 18), (19, 22, 18), (1, 0, 1)])
+    (19, 22, 18)
+    """
+    # avg of two pixels
+    final_avg = avg_pix(pixs)
+    # sorted list of the pix in increasing order of their distance from the average
+    sort_pix = sorted(pixs, key=lambda pix: pix_dist2(pix, final_avg))
+    # The first half of this list contains the "good" apples and the bad apples are in the second half
+    split = len(sort_pix) // 2
+    good = sort_pix[:split]
+    return best_pix(good)
+
+
+
+
+def solve(images, mode):
+    """
+    Given a list of image objects and mode,
+    compute and show a Ghost solution image based on these images.
+    Mode will be None or '-good'.
+    There will be at least 3 images and they will all be
+    the same size.
+    """
+    width = images[0].width
+    height = images[0].height
+    solution = SimpleImage.blank(width, height)
+
+    for y in range(height):
+        for x in range(width):
+            list_pixels = decompose_pix(images,x,y)
+            if mode is None:
+                best_pixel = best_pix(list_pixels)
+            if mode is '-good':
+                best_pixel = good_apple_pix(list_pixels)
+            solution.set_pix(x, y, best_pixel)
+    solution.show()
+
+
+
+def jpgs_in_dir(dir):
+    """
+    (provided)
+    Given the name of a directory
+    returns a list of the .jpg filenames within it.
+    """
+    filenames = []
+    for filename in os.listdir(dir):
+        if filename.endswith('.jpg'):
+            filenames.append(os.path.join(dir, filename))
+    return filenames
+
+
+def load_images(dir):
+    """
+    (provided)
+    Given a directory name, reads all the .jpg files
+    within it into memory and returns them in a list.
+    Prints the filenames out as it goes.
+    """
+    images = []
+    jpgs = jpgs_in_dir(dir)
+    for filename in jpgs:
+        print(filename)
+        image = SimpleImage.file(filename)
+        images.append(image)
+    return images
+
+
+def main():
+    args = sys.argv[1:]
+    # Command line args
+    # 1 arg:  dir-of-images
+    # 2 args: -good dir-of-images
+    if len(args) == 1:
+        images = load_images(args[0])
+        solve(images, None)
+
+    if len(args) == 2 and args[0] == '-good':
+        images = load_images(args[1])
+        solve(images, '-good')
+
+
+if __name__ == '__main__':
+    main()
